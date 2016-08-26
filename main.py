@@ -1,5 +1,4 @@
-import urllib, re
-
+import urllib, re 
 
 def main():
 
@@ -11,47 +10,72 @@ def main():
 def linkify(title):
 	return 'https://en.wikipedia.org/wiki/{}'.format(title.replace(' ','_'))
 
-def clickfinder(start_title, target_title, clicks = 1):
+def clickfinder(start_title, target_title):
 	''' returns the minimum number of clicks needed to get from one wikipedia
 	article to another. '''
 
+	new_title_list = [start_title]
 
-	if start_title == 'Wikipedia:Protection_policy#semi': return -1
+	clicks = 1
+	while True:
+		temp_list = []
+
+		for base_title in new_title_list:
 	
-	start_title, target_title = start_title.replace(' ','_'), target_title.replace(' ','_')
+			titles = title_list(base_title)
 
-	start_url, target_url = [linkify(x) for x in [start_title, target_title]]
+			for title in titles:
+				
+				if title.lower().replace(' ','_') == target_title.lower().replace(' ','_'): # ww have found the title
+					print base_title
+					return clicks
 
-	start_file, target_file = [urllib.urlopen(url) for url in [start_url, target_url]]
-	start_text, target_text = [f.read() for f in [start_file, target_file]]
+				temp_list.append(title)
 
-	start_file.close()
-	target_file.close()
+		new_title_list = temp_list
 
-	regex = '<a href="/wiki/(.+?)"'
+		clicks += 1
+
+
+
+		
+
+	return -1
+
+def title_list(title):
+	''' returns a list of titles that can be accessed using the title passed.
+	Ex. if title was A and there were Wiki links to B and C, title_list(A) = [B,C].
+
+	Since many Wikipedia articles are technical and do not link to other Wikipedia articles
+	(i.e. Wikipedia:User_agreement), articles with ":" are omitted.
+	'''
+	start_text = title_text(title)
+
+	regex = '<a href="/wiki/(.+?)"' # regex patterns. Matches wikipedia titles in underscore form.
 
 	pattern = re.compile(regex)
 
-	titles = re.findall(pattern, start_text)
+	titles = re.findall(pattern, start_text) # finds all titles.
 
 	
-	titles = filter(lambda x: (':' in x) == False, titles)
-	
-	#print len(titles)
-	
-	for title in titles:
-		if title.lower().replace(' ','_') == target_title.lower().replace(' ','_'):
-			return clicks
-
+	titles = filter(lambda x: (':' in x) == False, titles) # filters out all of the bad links (:)
+	return titles
 	
 
-	for title in titles: # iterate through title links
+def title_text(title):
+	''' returns the HTML text of a Wikipedia URL. "title" can be any Wikipedia page title.'''
 
-		e = clickfinder(title, target_title)
-		if e != -1:
-			return e
+	title = title.replace(' ','_')
+	url = linkify(title)
 
-	return -1
+	f = urllib.urlopen(url)
+
+	text = f.read()
+	f.close() # close the file before return.
+
+	return text
+
+
 
 if __name__ == '__main__':
 	main()
